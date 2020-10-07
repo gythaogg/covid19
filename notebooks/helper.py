@@ -66,9 +66,8 @@ def overview(selection, compact=True):
             ascending=True).groupby("countriesAndTerritories").agg({
                 'cases': ['sum', last_7_days_sum, rolling_avg, latest, 'max'],
                 'deaths': ['sum', last_7_days_sum, rolling_avg, latest, 'max'],
-                'dateRep': ['min', 'max'],
                 'Cumulative_number_for_14_days_of_COVID-19_cases_per_100000':
-                latest
+                [latest]
             }).sort_values(by=('cases', 'last_7_days_sum'), ascending=False)
     else:
         return selection.sort_values(
