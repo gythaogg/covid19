@@ -50,6 +50,10 @@ def last_7_days_sum(x):
     return x.iloc[-7:].sum()
 
 
+def last_5_days(x):
+    return ', '.join(x.iloc[-5:].astype(str))
+
+
 def overview(selection, compact=True):
     '''
     Returns
@@ -64,15 +68,16 @@ def overview(selection, compact=True):
         return selection.sort_values(
             by=['year', 'month', 'day'],
             ascending=True).groupby("countriesAndTerritories").agg({
-                'cases': ['sum', last_7_days_sum, rolling_avg, latest, 'max'],
-                'deaths': ['sum', last_7_days_sum, rolling_avg, latest, 'max'],
+                'cases': [rolling_avg, last_5_days, 'max'],
+                'deaths':
+                ['sum', last_7_days_sum, rolling_avg, last_5_days, 'max'],
                 'Cumulative_number_for_14_days_of_COVID-19_cases_per_100000':
-                [latest]
-            }).sort_values(by=('cases', 'last_7_days_sum'), ascending=False)
+                [latest, 'max']
+            }).sort_values(by=('cases', 'rolling_avg'), ascending=False)
     else:
         return selection.sort_values(
             by=['year', 'month', 'day'],
             ascending=True).groupby("countriesAndTerritories").agg({
-                'cases': ['sum', last_7_days_sum, rolling_avg, latest],
-                'deaths': ['sum', last_7_days_sum, rolling_avg, latest],
-            }).sort_values(by=('cases', 'last_7_days_sum'), ascending=False)
+                'cases': [rolling_avg, latest, 'max'],
+                'deaths': ['sum', last_7_days_sum, rolling_avg, latest, 'max'],
+            }).sort_values(by=('cases', 'rolling_avg'), ascending=False)
