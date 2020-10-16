@@ -1,45 +1,16 @@
-from datetime import datetime, timedelta
-from json import dumps, loads
-
 import numpy as np
-import pandas as pd
-import requests
+from matplotlib import pyplot as plt
 
-# AUSTRIA
 WEEKDAYS = ('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday',
             'Sunday')
 
 
-def ecdc():
-    response = requests.get(
-        'https://opendata.ecdc.europa.eu/covid19/casedistribution/json')
-    json = response.json()
-    df = pd.read_json(dumps(json['records']))
-    df['dateRep'] = pd.to_datetime(df['dateRep'].astype(str),
-                                   format='%d/%m/%Y')
-    df['Cumulative_number_for_14_days_of_COVID-19_cases_per_100000'] = pd.to_numeric(
-        df['Cumulative_number_for_14_days_of_COVID-19_cases_per_100000'].
-        fillna(0))
-    return df
-
-
-def at():
-    df = pd.read_csv(
-        'https://info.gesundheitsministerium.at/data/Epikurve.csv',
-        delimiter=';')
-    weekday = []
-    for i, row in df.iterrows():
-        day_num = datetime.strptime(row['time'], '%d.%m.%Y').weekday()
-        weekday.append(day_num)
-
-    df['weekday'] = weekday
-    df['time'] = pd.to_datetime(df['time'].astype(str), format='%d.%m.%Y')
-
-    return df
+def rolling_avg_round(x):
+    return np.round(x.iloc[-7:].mean())
 
 
 def rolling_avg(x):
-    return np.round(x.iloc[-7:].mean())
+    return x.iloc[-7:].mean()
 
 
 def latest(x):
@@ -54,30 +25,23 @@ def last_5_days(x):
     return ', '.join(x.iloc[-5:].astype(str))
 
 
-def overview(selection, compact=True):
-    '''
-    Returns
-    - sum,
-    - last_7_days_sum: sum in the last 7 days,
-    - rolling_avg:  rolling average for the last 7 days,
-    - latest, and
-    - max
-    values for cases and deaths
-    '''
-    if not compact:
-        return selection.sort_values(
-            by=['year', 'month', 'day'],
-            ascending=True).groupby("countriesAndTerritories").agg({
-                'cases': [rolling_avg, last_5_days, 'max'],
-                'deaths':
-                ['sum', last_7_days_sum, rolling_avg, last_5_days, 'max'],
-                'Cumulative_number_for_14_days_of_COVID-19_cases_per_100000':
-                [latest, 'max']
-            }).sort_values(by=('cases', 'rolling_avg'), ascending=False)
+def bar(ax, x, y, **kwargs):
+    plt.xticks(rotation=45)
+    if kwargs.get('xticks'):
+        plt.xticks(*kwargs.get('xticks'), rotation=45)
     else:
-        return selection.sort_values(
-            by=['year', 'month', 'day'],
-            ascending=True).groupby("countriesAndTerritories").agg({
-                'cases': [rolling_avg, latest, 'max'],
-                'deaths': ['sum', last_7_days_sum, rolling_avg, latest, 'max'],
-            }).sort_values(by=('cases', 'rolling_avg'), ascending=False)
+        ax.xaxis.set_major_locator(plt.MaxNLocator(20))
+
+    ax.bar(x, y, label=kwargs.get('label'), alpha=0.6, color='C1')
+    return ax
+
+
+def plot_rolling_avg(ax, x, y, roll_days=0, **kwargs):
+    if not roll_days: return ax
+    ax.plot(x,
+            y.rolling(roll_days).mean(),
+            label=f'rolling average ({roll_days})',
+            marker='o',
+            markersize=4,
+            linestyle='--')
+    return ax

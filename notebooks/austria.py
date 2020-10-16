@@ -6,9 +6,9 @@ from json import dumps, loads
 import numpy as np
 import pandas as pd
 import requests
+from matplotlib import pyplot as plt
 
-WEEKDAYS = ('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday',
-            'Sunday')
+from helper import bar, plot_rolling_avg
 
 
 class Austria:
@@ -25,7 +25,7 @@ class Austria:
         df['weekday'] = weekday
         df['time'] = pd.to_datetime(df['time'].astype(str), format='%d.%m.%Y')
 
-        return df
+        return df.sort_values(by='time', ascending=True)
 
     @cached_property
     def fall_zählen(self):
@@ -82,3 +82,33 @@ class Austria:
             'https://covid19-dashboard.ages.at/data/CovidFaelle_Altersgruppe.csv',
             delimiter=';')
         return df
+
+    def plot_tägliche_erkrankungen(self, roll_days, ndays=30, **kwargs):
+        f, ax = plt.subplots()
+        x = self.epicurve['time']
+        y = self.epicurve['tägliche Erkrankungen']
+        dates = pd.date_range(start=min(x),
+                              end=max(x),
+                              freq='W',
+                              closed='left')
+
+        xticks = (dates, dates.strftime('%Y W #%U'))
+
+        ax = bar(ax,
+                 x=x,
+                 y=y,
+                 label='tägliche Erkrankungen',
+                 xticks=xticks,
+                 **kwargs)
+
+        if roll_days:
+            ax = plot_rolling_avg(ax, x=x, y=y, roll_days=roll_days, **kwargs)
+        if kwargs.get('log'):
+            plt.yscale('log')
+
+        print([x.iloc[-ndays], x.iloc[-1]])
+        plt.xlim(x.iloc[-ndays], x.iloc[-1])
+        plt.legend(loc='best')
+        plt.title('Positive COVID tests')
+        plt.tight_layout()
+        return ax
