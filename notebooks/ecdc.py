@@ -69,6 +69,9 @@ class ECDC:
 
     def plot_country(self, geoId, ndays=0, **kwargs):
         selection = self.select_country(geoId, ndays)
+        return self.plot_selection(selection, ndays, **kwargs)
+
+    def plot_selection(self, selection, ndays=0, **kwargs):
         f, ax = plt.subplots()
         x = selection.dateRep
         y = selection['cases']
@@ -86,6 +89,7 @@ class ECDC:
 
         plt.legend(loc='best')
         plt.title('Positive COVID tests')
+        plt.xlim(x.iloc[-ndays], x.iloc[-1])
         plt.tight_layout()
         return ax
 
