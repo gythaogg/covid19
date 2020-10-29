@@ -74,21 +74,22 @@ class ECDC:
     def plot_selection(self, selection, ndays=0, **kwargs):
         f, ax = plt.subplots()
         x = selection.dateRep
-        y = selection['cases']
+        column = kwargs.get('column', 'cases')
+        y = selection[column]
         dates = pd.date_range(start=min(x),
                               end=max(x),
                               freq='W',
                               closed='left')
 
         xticks = (dates, dates.strftime('%Y W #%U'))
-        ax = bar(ax, x=x, y=y, label='cases', xticks=xticks, **kwargs)
+        ax = bar(ax, x=x, y=y, label=column, xticks=xticks, **kwargs)
         ax = plot_rolling_avg(ax, x=x, y=y, **kwargs)
 
         if kwargs.get('log'):
             plt.yscale('log')
 
         plt.legend(loc='best')
-        plt.title('Positive COVID tests')
+        plt.title('')
         plt.xlim(x.iloc[-ndays], x.iloc[-1])
         plt.tight_layout()
         return ax
@@ -115,6 +116,6 @@ class ECDC:
             plt.yscale('log')
 
         plt.legend(loc='best')
-        plt.title('Cumulative number for 14 days of COVID-19 cases per 100000')
+        plt.title(field)
         plt.tight_layout()
         return ax
