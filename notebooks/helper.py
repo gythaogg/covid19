@@ -45,3 +45,14 @@ def plot_rolling_avg(ax, x, y, roll_days=0, **kwargs):
             markersize=4,
             linestyle='--')
     return ax
+
+
+def pretty_plot(ax, **kwargs):
+    plt.xticks(rotation=45)
+    if kwargs.get('xticks'):
+        plt.xticks(*kwargs.get('xticks'), rotation=45)
+    else:
+        ax.xaxis.set_major_locator(plt.MaxNLocator(20))
+
+    plt.legend(loc='best')
+    plt.tight_layout()
