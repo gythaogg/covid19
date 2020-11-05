@@ -25,6 +25,10 @@ def last_5_days(x):
     return ', '.join(x.iloc[-5:].astype(str))
 
 
+def concat(x):
+    return ', '.join(x.astype(str))
+
+
 def bar(ax, x, y, **kwargs):
     plt.xticks(rotation=45)
     if kwargs.get('xticks'):
@@ -53,6 +57,9 @@ def pretty_plot(ax, **kwargs):
         plt.xticks(*kwargs.get('xticks'), rotation=45)
     else:
         ax.xaxis.set_major_locator(plt.MaxNLocator(20))
+
+    if kwargs.get('log'):
+        plt.yscale('log')
 
     plt.legend(loc='best')
     plt.tight_layout()

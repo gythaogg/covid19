@@ -36,6 +36,8 @@ class ECDC:
         return selection.sort_values(
             by=['year', 'month', 'day'],
             ascending=True).groupby("countriesAndTerritories").agg({
+                'dateRep':
+                latest,
                 'cases': [rolling_avg, last_5_days, 'max'],
                 'deaths':
                 ['sum', last_7_days_sum, rolling_avg, last_5_days, 'max'],
@@ -48,6 +50,8 @@ class ECDC:
         return selection.sort_values(
             by=['year', 'month', 'day'],
             ascending=True).groupby("countriesAndTerritories").agg({
+                'dateRep':
+                latest,
                 'cases': [rolling_avg, latest, 'max'],
                 'deaths': ['sum', last_7_days_sum, rolling_avg, latest, 'max'],
             }).sort_values(by=('cases', 'rolling_avg'), ascending=False)
@@ -89,7 +93,7 @@ class ECDC:
             plt.yscale('log')
 
         plt.legend(loc='best')
-        plt.title('')
+        plt.title(kwargs.get('title', ''))
         plt.xlim(x.iloc[-ndays], x.iloc[-1])
         plt.tight_layout()
         return ax
@@ -105,7 +109,7 @@ class ECDC:
         for geoId in geoIds:
             selection = self.select_country(geoId, ndays)
             ax.plot(selection.dateRep,
-                    selection[field],
+                    selection[field].rolling(roll_days).mean(),
                     label=self.country_name(geoId))
 
         ax.xaxis.set_major_locator(plt.MaxNLocator(25))
