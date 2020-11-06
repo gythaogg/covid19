@@ -82,7 +82,7 @@ def plot_rolling_avg(ax, x, y, roll_days=0, **kwargs):
     return ax
 
 
-def pretty_plot(ax, **kwargs):
+def pretty_plot(ax, show_legend=True, **kwargs):
     plt.xticks(rotation=90)
     if kwargs.get('xticks'):
         plt.xticks(*kwargs.get('xticks'), rotation=90)
@@ -96,5 +96,6 @@ def pretty_plot(ax, **kwargs):
     if kwargs.get('title'):
         plt.title(kwargs.get('title'))
 
-    plt.legend(loc='best')
+    if show_legend:
+        plt.legend(loc='best')
     plt.tight_layout()
