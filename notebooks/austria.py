@@ -8,7 +8,7 @@ import pandas as pd
 import requests
 from matplotlib import pyplot as plt
 
-from helper import bar, plot_rolling_avg
+from helper import bar, latest, plot_rolling_avg, pretty_plot
 
 
 class Austria:
@@ -111,4 +111,59 @@ class Austria:
         plt.legend(loc='best')
         plt.title('Positive COVID tests')
         plt.tight_layout()
+        return ax
+
+    def plot_cases_by_day_of_the_week(self, num_weeks_history=5):
+        f, ax = plt.subplots(figsize=(9, 5))
+        grouped = self.epicurve.groupby(self.epicurve.time.dt.day_name(),
+                                        as_index=False).agg(
+                                            ('sum', 'max', 'min', 'median',
+                                             'mean', latest)).sort_values(
+                                                 ('weekday', 'latest'))
+
+        ax.scatter(grouped.index,
+                   grouped[('tägliche Erkrankungen', 'max')],
+                   label='max',
+                   marker='D',
+                   s=50,
+                   c='k')
+        ax.scatter(grouped.index,
+                   grouped[('tägliche Erkrankungen', 'median')],
+                   label='median',
+                   marker='D')
+        ax.scatter(grouped.index,
+                   grouped[('tägliche Erkrankungen', 'min')],
+                   label='min',
+                   marker='D')
+
+        last_n_weeks = self.epicurve.sort_values(
+            'time').time.dt.isocalendar().week.unique()[-num_weeks_history:]
+        print(last_n_weeks)
+        for w in last_n_weeks:
+            df = self.epicurve[self.epicurve.time.dt.isocalendar().week == w]
+            ax.plot(df.time.dt.day_name(),
+                    df['tägliche Erkrankungen'],
+                    label=f'week #{w}',
+                    marker='o',
+                    linestyle='--',
+                    alpha=0.7)
+
+        pretty_plot(ax, log=False, num_x_locators=7)
+
+        return ax
+
+    def plot_positivity_rate(self, bundesland='Alle'):
+        cases = self.fall_zählen[self.fall_zählen.Bundesland == bundesland]
+        timeline = self.fälle_timeline_gkz[self.fälle_timeline_gkz.Bezirk ==
+                                           bundesland]
+        print(cases.MeldeDatum.max())
+        f, ax = plt.subplots()
+        ax.plot(cases.MeldeDatum,
+                cases.TestGesamt.diff().rolling(7).mean(),
+                label='Tests')
+        ax.plot(timeline.Time,
+                timeline.AnzahlFaelle.rolling(7).mean(),
+                label='Cases')
+
+        pretty_plot(ax, log=True, title=f'Positiviy rate - {bundesland}')
         return ax
