@@ -9,7 +9,7 @@ def aggregation_rules(fields, datefield):
     agg_rules = {}
     agg_rules[datefield] = latest
     for f in fields:
-        agg_rules[f] = ('max', 'min', 'sum', 'median', latest)
+        agg_rules[f] = ('max', 'min', 'sum', 'median', 'cumsum', latest)
 
     return agg_rules
 
