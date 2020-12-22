@@ -16,10 +16,8 @@ class ECDC:
         _df = pd.read_json(dumps(response.json()['records']))
         _df['dateRep'] = pd.to_datetime(_df['dateRep'].astype(str),
                                         format='%d/%m/%Y')
-        _df['Cumulative_number_for_14_days_of_COVID-19_cases_per_100000'] = pd.to_numeric(
-            _df['Cumulative_number_for_14_days_of_COVID-19_cases_per_100000'].
-            fillna(0))
-
+        _df['notification_rate_per_100000_population_14-days'] = pd.to_numeric(
+            _df['notification_rate_per_100000_population_14-days'].fillna(0))
         return _df
 
     def overview(self, selection=None):
@@ -33,28 +31,28 @@ class ECDC:
         values for cases and deaths
         '''
         if selection is None: selection = self.df
-        return selection.sort_values(
-            by=['year', 'month', 'day'],
-            ascending=True).groupby("countriesAndTerritories").agg({
-                'dateRep':
-                latest,
-                'cases': [rolling_avg, last_5_days, 'max'],
-                'deaths':
-                ['sum', last_7_days_sum, rolling_avg, last_5_days, 'max'],
-                'Cumulative_number_for_14_days_of_COVID-19_cases_per_100000':
-                [latest, 'max']
-            }).sort_values(by=('cases', 'rolling_avg'), ascending=False)
+        return selection.sort_values(by=[
+            'year_week'
+        ], ascending=True).groupby("countriesAndTerritories").agg({
+            'dateRep':
+            latest,
+            'cases_weekly': [rolling_avg, last_5_days, 'max'],
+            'deaths_weekly':
+            ['sum', last_7_days_sum, rolling_avg, last_5_days, 'max'],
+            'notification_rate_per_100000_population_14-days': [latest, 'max']
+        }).sort_values(by=('cases_weekly', 'rolling_avg'), ascending=False)
 
     def compact_overview(self, selection):
         if selection is None: selection = self.df
         return selection.sort_values(
-            by=['year', 'month', 'day'],
+            by=['year_week', 'month', 'day'],
             ascending=True).groupby("countriesAndTerritories").agg({
                 'dateRep':
                 latest,
-                'cases': [rolling_avg, latest, 'max'],
-                'deaths': ['sum', last_7_days_sum, rolling_avg, latest, 'max'],
-            }).sort_values(by=('cases', 'rolling_avg'), ascending=False)
+                'cases_weekly': [rolling_avg, latest, 'max'],
+                'deaths_weekly':
+                ['sum', last_7_days_sum, rolling_avg, latest, 'max'],
+            }).sort_values(by=('cases_weekly', 'rolling_avg'), ascending=False)
 
     def country_name(self, geoId):
         return self.df[self.df.geoId ==
@@ -64,10 +62,10 @@ class ECDC:
     def select_country(self, geoId, ndays=0):
         if not ndays:
             selection = self.df[self.df.geoId == geoId].sort_values(
-                by=['year', 'month', 'day'], ascending=True)
+                by=['year_week'], ascending=True)
         else:
             selection = self.df[self.df.geoId == geoId].sort_values(
-                by=['year', 'month', 'day'], ascending=True).tail(ndays)
+                by=['year_week'], ascending=True).tail(ndays)
 
         return selection
 
@@ -78,7 +76,7 @@ class ECDC:
     def plot_selection(self, selection, ndays=0, **kwargs):
         f, ax = plt.subplots()
         x = selection.dateRep
-        column = kwargs.get('column', 'cases')
+        column = kwargs.get('column', 'cases_weekly')
         y = selection[column]
         dates = pd.date_range(start=min(x),
                               end=max(x),
@@ -102,7 +100,7 @@ class ECDC:
             self,
             geoIds,
             roll_days=1,
-            field='Cumulative_number_for_14_days_of_COVID-19_cases_per_100000',
+            field='notification_rate_per_100000_population_14-days',
             log=False,
             ndays=30):
         f, ax = plt.subplots(figsize=(9, 6))
@@ -110,7 +108,9 @@ class ECDC:
             selection = self.select_country(geoId, ndays)
             ax.plot(selection.dateRep,
                     selection[field].rolling(roll_days).mean(),
-                    label=self.country_name(geoId))
+                    label=self.country_name(geoId),
+                    marker='o',
+                    markersize=2)
 
         ax.xaxis.set_major_locator(plt.MaxNLocator(25))
         ax.yaxis.set_major_locator(plt.MaxNLocator(10))

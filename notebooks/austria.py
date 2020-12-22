@@ -6,6 +6,7 @@ from json import dumps, loads
 import numpy as np
 import pandas as pd
 import requests
+from matplotlib import cm
 from matplotlib import pyplot as plt
 
 from helper import bar, latest, plot_rolling_avg, pretty_plot
@@ -115,6 +116,8 @@ class Austria:
 
     def plot_cases_by_day_of_the_week(self, num_weeks_history=5):
         f, ax = plt.subplots(figsize=(9, 5))
+        viridis = cm.get_cmap('viridis', num_weeks_history)
+
         grouped = self.epicurve.groupby(self.epicurve.time.dt.day_name(),
                                         as_index=False).agg(
                                             ('sum', 'max', 'min', 'median',
@@ -138,18 +141,23 @@ class Austria:
 
         last_n_weeks = self.epicurve.sort_values(
             'time').time.dt.isocalendar().week.unique()[-num_weeks_history:]
-        print(last_n_weeks)
-        for w in last_n_weeks:
+        for i, w in enumerate(last_n_weeks):
             df = self.epicurve[self.epicurve.time.dt.isocalendar().week == w]
             ax.plot(df.time.dt.day_name(),
                     df['tägliche Erkrankungen'],
                     label=f'week #{w}',
                     marker='o',
                     linestyle='--',
-                    alpha=0.7)
+                    color=viridis.colors[i],
+                    alpha=1)
 
-        pretty_plot(ax, log=False, num_x_locators=7)
+        if num_weeks_history >= 6:
+            plt.legend(bbox_to_anchor=(1, 1), ncol=1, loc='upper left')
 
+        pretty_plot(ax,
+                    log=False,
+                    num_x_locators=7,
+                    show_legend=num_weeks_history < 6)
         return ax
 
     def plot_positivity_rate(self, bundesland='Alle'):
