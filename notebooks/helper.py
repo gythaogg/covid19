@@ -1,24 +1,35 @@
 import numpy as np
 from matplotlib import pyplot as plt
+from matplotlib.ticker import (AutoMinorLocator, FormatStrFormatter,
+                               MultipleLocator)
 
-WEEKDAYS = ('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday',
-            'Sunday')
+WEEKDAYS = (
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+    "Sunday",
+)
 
 
 def aggregation_rules(fields, datefield):
     agg_rules = {}
     agg_rules[datefield] = latest
     for f in fields:
-        agg_rules[f] = ('max', 'min', 'sum', 'median', 'cumsum', latest)
+        agg_rules[f] = ("max", "min", "sum", "median", "cumsum", latest)
 
     return agg_rules
 
 
 def group_by_month(df, datefield, fields, include_last=False):
     agg_rules = aggregation_rules(fields, datefield)
-    grouped = df.groupby(df[datefield].dt.month,
-                         as_index=False).agg(agg_rules).sort_values(
-                             (datefield, 'latest'))
+    grouped = (
+        df.groupby(df[datefield].dt.month, as_index=False)
+        .agg(agg_rules)
+        .sort_values((datefield, "latest"))
+    )
     if not include_last:
         return grouped.iloc[:-1]
 
@@ -27,9 +38,11 @@ def group_by_month(df, datefield, fields, include_last=False):
 
 def group_by_week(df, datefield, fields, include_last=False):
     agg_rules = aggregation_rules(fields, datefield)
-    grouped = df.groupby(df[datefield].dt.isocalendar().week,
-                         as_index=False).agg(agg_rules).sort_values(
-                             (datefield, 'latest'))
+    grouped = (
+        df.groupby(df[datefield].dt.isocalendar().week, as_index=False)
+        .agg(agg_rules)
+        .sort_values((datefield, "latest"))
+    )
     if not include_last:
         return grouped.iloc[:-1]
 
@@ -53,51 +66,60 @@ def last_7_days_sum(x):
 
 
 def last_5_days(x):
-    return ', '.join(x.iloc[-5:].astype(str))
+    return ", ".join(x.iloc[-5:].astype(str))
 
 
 def concat(x):
-    return ', '.join(x.astype(str))
+    return ", ".join(x.astype(str))
 
 
 def bar(ax, x, y, **kwargs):
     plt.xticks(rotation=45)
-    if kwargs.get('xticks'):
-        plt.xticks(*kwargs.get('xticks'), rotation=45)
+    if kwargs.get("xticks"):
+        plt.xticks(*kwargs.get("xticks"), rotation=45)
     else:
         ax.xaxis.set_major_locator(plt.MaxNLocator(20))
 
-    ax.bar(x, y, label=kwargs.get('label'), alpha=0.6, color='C1')
+    ax.bar(x, y, label=kwargs.get("label"), alpha=0.6, color="C1")
     return ax
 
 
 def plot_rolling_avg(ax, x, y, roll_days=0, **kwargs):
-    if not roll_days: return ax
+    if not roll_days:
+        return ax
 
-    ax.plot(x,
-            y.rolling(roll_days).mean(),
-            label=kwargs.get('label', f'rolling average ({roll_days})'),
-            marker='o',
-            markersize=4,
-            linestyle='--',
-            color=kwargs.get('color', 'k'))
+    ax.plot(
+        x,
+        y.rolling(roll_days).mean(),
+        label=kwargs.get("label", f"rolling average ({roll_days})"),
+        marker="o",
+        markersize=4,
+        linestyle="--",
+        color=kwargs.get("color", "k"),
+    )
     return ax
 
 
 def pretty_plot(ax, show_legend=True, **kwargs):
-    ax.tick_params(labelrotation=90, axis='x')
-    if kwargs.get('xticks'):
-        plt.xticks(*kwargs.get('xticks'), rotation=90)
-    else:
-        num_x_locators = kwargs.get('num_x_locators', 20)
-        ax.xaxis.set_major_locator(plt.MaxNLocator(num_x_locators))
+    ax.tick_params(labelrotation=90, axis="x")
+    ax.xaxis.set_major_locator(MultipleLocator(kwargs.get("major_locator", 28)))
+    ax.xaxis.set_minor_locator(MultipleLocator(kwargs.get("minor_locator", 7)))
+    ax.xaxis.grid(True, which="major")
+    ax.tick_params(which="major", length=7)
+    ax.tick_params(which="minor", length=4, color="r")
 
-    if kwargs.get('log'):
-        plt.yscale('log')
+    if isinstance(kwargs.get("xticks"), list):
+        plt.xticks(*kwargs.get("xticks"), rotation=90)
+    # else:
+    #     num_x_locators = kwargs.get('num_x_locators', 20)
+    #     ax.xaxis.set_major_locator(plt.MaxNLocator(num_x_locators))
 
-    if kwargs.get('title'):
-        ax.set_title(kwargs.get('title'))
+    if kwargs.get("log"):
+        ax.set_yscale("log")
+
+    if kwargs.get("title"):
+        ax.set_title(kwargs.get("title"))
 
     if show_legend:
-        ax.legend(loc='best')
+        ax.legend(loc="best")
     plt.tight_layout()

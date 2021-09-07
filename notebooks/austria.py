@@ -12,6 +12,10 @@ from matplotlib import pyplot as plt
 from helper import bar, latest, plot_rolling_avg, pretty_plot
 
 
+def str2float(x):
+    return float(str(x).replace(',', '.'))
+
+
 class Austria:
     # @cached_property
     # def epicurve(self):
@@ -27,6 +31,39 @@ class Austria:
     #     df['time'] = pd.to_datetime(df['time'].astype(str), format='%d.%m.%Y')
 
     #     return df.sort_values(by='time', ascending=True)
+
+    @cached_property
+    def vaccines(self):
+        vaccines = pd.read_csv(
+            'https://info.gesundheitsministerium.gv.at/data/laender.csv',
+            delimiter=';')
+        return vaccines
+
+    @cached_property
+    def rdf_alle(self):
+        df = self.fetch_rdf(
+            'https://www.ages.at/fileadmin/AGES2015/Wissen-Aktuell/COVID19/R_eff.csv'
+        )
+        return df
+
+    @cached_property
+    def rdf_bundesland(self):
+        df = self.fetch_rdf(
+            'https://www.ages.at/fileadmin/AGES2015/Wissen-Aktuell/COVID19/R_eff_bundesland.csv'
+        )
+        return df
+
+    def fetch_rdf(self, url):
+        df = pd.read_csv(url,
+                         quotechar='"',
+                         delimiter=';',
+                         encoding='iso-8859-1')
+        for col in ['R_eff', 'R_eff_lwr', 'R_eff_upr']:
+            df[col] = df[col].apply(str2float)
+
+        df['Datum'] = pd.to_datetime(df['Datum'].astype(str),
+                                     format='%Y-%m-%d')
+        return df
 
     @cached_property
     def fall_zählen(self):
@@ -89,6 +126,7 @@ class Austria:
                                    ndays=30,
                                    column_name='AnzahlFaelle',
                                    bezirk='Wien',
+                                   predict_days=14,
                                    **kwargs):
         if bezirk:
             df = self.fälle_timeline_gkz[self.fälle_timeline_gkz.Bezirk ==
@@ -97,6 +135,11 @@ class Austria:
             df = self.fälle_timeline_gkz.groupby(
                 by='Time', as_index=False).agg(
                     'sum')  #[self.fälle_timeline_gkz.Bezirk == bezirk]
+
+        if predict_days:
+            # use R_eff to predict
+            if bezirk and bezirk in self.rdf_bundesland.Bundesland:
+                pass
         f, ax = plt.subplots()
         x = df['Time']
         y = df[column_name]
@@ -105,22 +148,30 @@ class Austria:
                               freq='W',
                               closed='left')
 
-        xticks = (dates, dates.strftime('%Y W #%U'))
+        # xticks = (dates, dates.strftime('%Y W #%U'))
 
-        ax = bar(ax, x=x, y=y, label=column_name, xticks=xticks, **kwargs)
+        ax = bar(
+            ax,
+            x=x,
+            y=y,
+            label=column_name,
+            # xticks=xticks,
+            **kwargs)
 
         if roll_days:
             ax = plot_rolling_avg(ax, x=x, y=y, roll_days=roll_days, **kwargs)
         if kwargs.get('log'):
             plt.yscale('log')
 
-        print([x.iloc[-ndays], x.iloc[-1]])
         plt.xlim(x.iloc[-ndays], x.iloc[-1])
-        plt.legend(loc='best')
+        # plt.legend(loc='best')
         plt.title(
             f'Positive COVID tests - {bezirk if bezirk else "Österreich"}')
-        plt.xticks(rotation=90)
-        plt.tight_layout()
+        pretty_plot(
+            ax,
+            # xticks=xticks,
+            **kwargs)
+
         return ax
 
     def plot_cases_by_day_of_the_week(self,
@@ -184,11 +235,12 @@ class Austria:
 
         pretty_plot(ax,
                     log=False,
-                    num_x_locators=7,
+                    major_locator=1,
+                    minor_locator=1,
                     show_legend=num_weeks_history < 6)
         return ax
 
-    def plot_positivity_rate(self, bundesland='Alle'):
+    def plot_positivity_rate(self, bundesland='Alle', **kwargs):
         cases = self.fall_zählen[self.fall_zählen.Bundesland == bundesland]
 
         if bundesland == 'Alle':
@@ -208,5 +260,5 @@ class Austria:
                 timeline.AnzahlFaelle.rolling(7).mean(),
                 label='Cases')
 
-        pretty_plot(ax, log=True, title=f'Positiviy rate - {bundesland}')
+        pretty_plot(ax, title=f'Positiviy rate - {bundesland}', **kwargs)
         return ax

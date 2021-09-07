@@ -1,6 +1,9 @@
 from functools import cached_property
 
 import pandas as pd
+from tqdm.auto import tqdm
+
+tqdm.pandas()
 
 
 class Gestorbene:
@@ -21,32 +24,25 @@ class Gestorbene:
         # replace codes with labels
         # C-KALWOCHE-0	C-B00-0	C-ALTERGR65-0	C-C11-0	F-ANZ-1
 
-        def update_dates(row):
+        def update_rows(row):
             kal_data = self.kal_woche[
                 self.kal_woche.code ==
                 row['C-KALWOCHE-0']].iloc[0]['name'].replace('(', '').replace(
                     ')', '').split()
-            return [kal_data[-3], kal_data[-1]]
-
-        def update_sex(row):
             sex_label = self.geschlecht[self.geschlecht.code ==
                                         row['C-C11-0']].iloc[0].en_name
-            return sex_label
-
-        def update_bundesland(row):
             bundesland = self.bundesland[self.bundesland.code ==
                                          row['C-B00-0']].iloc[0]['name'].split(
                                              '<')[0]
-            return bundesland
 
-        _df['week_begin'], _df['week_end'] = zip(
-            *_df.apply(update_dates, axis=1))
+            return (kal_data[-3], kal_data[-1], sex_label, bundesland)
+
+        _df['week_begin'], _df['week_end'], _df['sex'], _df[
+            'bundesland'] = zip(*_df.progress_apply(update_rows, axis=1))
         _df['week_begin'] = pd.to_datetime(_df['week_begin'].astype(str),
                                            format='%d.%m.%Y')
         _df['week_end'] = pd.to_datetime(_df['week_end'].astype(str),
                                          format='%d.%m.%Y')
-        _df['sex'] = _df.apply(update_sex, axis=1)
-        _df['bundesland'] = _df.apply(update_bundesland, axis=1)
 
         return _df
 
