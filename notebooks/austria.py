@@ -1,7 +1,10 @@
 import logging
+import zipfile
 from datetime import datetime
 from functools import cached_property
+from io import BytesIO
 from json import dumps, loads
+from zipfile import ZipFile
 
 import numpy as np
 import pandas as pd
@@ -32,6 +35,23 @@ class Austria:
 
     #     return df.sort_values(by='time', ascending=True)
 
+    def __init__(self):
+        #Defining the zip file URL
+        url = 'https://covid19-dashboard.ages.at/data/data.zip'
+
+        # Split URL to get the file name
+        filename = url.split('/')[-1]
+
+        # Downloading the file by sending the request to the URL
+        req = requests.get(url)
+        print('Downloading Completed')
+
+        # extracting the zip file contents
+        zipfile= ZipFile(BytesIO(req.content))
+        zipfile.extractall()
+
+
+
     @cached_property
     def vaccines(self):
         vaccines = pd.read_csv(
@@ -42,14 +62,14 @@ class Austria:
     @cached_property
     def rdf_alle(self):
         df = self.fetch_rdf(
-            'https://www.ages.at/fileadmin/AGES2015/Wissen-Aktuell/COVID19/R_eff.csv'
+            'https://wissenaktuell.ages.at/fileadmin/AGES2015/Wissen-Aktuell/COVID19/R_eff.csv'
         )
         return df
 
     @cached_property
     def rdf_bundesland(self):
         df = self.fetch_rdf(
-            'https://www.ages.at/fileadmin/AGES2015/Wissen-Aktuell/COVID19/R_eff_bundesland.csv'
+            'https://wissenaktuell.ages.at/fileadmin/AGES2015/Wissen-Aktuell/COVID19/R_eff_bundesland.csv'
         )
         return df
 
@@ -68,7 +88,7 @@ class Austria:
     @cached_property
     def fall_zählen(self):
         df = pd.read_csv(
-            'https://covid19-dashboard.ages.at/data/CovidFallzahlen.csv',
+            'CovidFallzahlen.csv',
             delimiter=';')
         df['MeldeDatum'] = pd.to_datetime(df['MeldeDatum'].astype(str),
                                           format='%d.%m.%Y %H:%M:%S')
@@ -78,7 +98,7 @@ class Austria:
     @cached_property
     def fälle_timeline_gkz(self):
         df = pd.read_csv(
-            'https://covid19-dashboard.ages.at/data/CovidFaelle_Timeline_GKZ.csv',
+            'CovidFaelle_Timeline_GKZ.csv',
             delimiter=';')
         df['Time'] = pd.to_datetime(df['Time'].astype(str),
                                     format='%d.%m.%Y %H:%M:%S')
@@ -117,7 +137,7 @@ class Austria:
         Geschlecht Anzahl AnzahlGeheilt	AnzahlTot
         '''
         df = pd.read_csv(
-            'https://covid19-dashboard.ages.at/data/CovidFaelle_Altersgruppe.csv',
+            'CovidFaelle_Altersgruppe.csv',
             delimiter=';')
         return df
 
